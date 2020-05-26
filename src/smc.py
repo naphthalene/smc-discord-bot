@@ -27,20 +27,28 @@ class SMC:
     def format_user(user):
         return f"{user.name}#{user.discriminator}"
 
+    def __repr__(self):
+        msg = (f"Topic: {self.topic}\n"
+               f"Contestants: {self.members}\n"
+               f"Duration: {(self.duration / 60):.2f} minutes"
+        if self.timer is not None:
+            msg += f"\nRemaining: {(self.timer.remaining / 60):.2f} minutes"
+        return msg
+
     async def _announce(self):
         """
         Announce the start of challenge
         """
-        await self.channel.send(f"~ Starting SMC ~")
+        await self.channel.send('~ Starting SMC ~')
         await self.channel.send(repr(self))
-        await self.channel.send(f"~ Join with `!in` ~")
+        await self.channel.send('~ Join with `!in` ~')
 
     @staticmethod
     def validate_command(parts):
         if len(parts) < 3:
-            return (False, "Not enough args")
+            return (False, 'Not enough args')
         if int(parts[1]) <= 0:
-            return (False, "Challenge time cannot be zero or negative")
+            return (False, 'Challenge time cannot be zero or negative')
         return (True, None)
 
     def is_owner(self, author):
@@ -55,7 +63,7 @@ class SMC:
         """
         user = self.format_user(msg.author)
         if self.state in ['STARTED']:
-            await self.channel.send(f"~ error: Sorry, this SMC has already begun ~")
+            await self.channel.send('~ error: Sorry, this SMC has already begun ~')
         elif self in self.members:
             await self.channel.send(f"~ {user} is already competing ~")
         else:
@@ -67,10 +75,10 @@ class SMC:
         A user leaves the challenge before it ends
         """
         if not self.ongoing():
-            await self.channel.send(f"~ error: This SMC already ended ~")
+            await self.channel.send('~ error: This SMC already ended ~')
             return
         user = self.format_user(msg.author)
-        if self in self.members:
+        if user in self.members:
             await self.channel.send(f"~ {user} has left the challenge ~")
             self.members.remove(user)
         else:
@@ -97,7 +105,7 @@ class SMC:
         if not self.is_owner(msg.author):
             await self.channel.send(f"~ error: Only {self.owner} can cancel this SMC ~")
             return
-        if self.state in ['CREATED', 'STARTED']:
+        if self.ongoing() and self.timer is not None:
             await self.channel.send(f"~ SMC is CANCELLED! ~")
             self.state = 'CANCELLED'
             self.timer.cancel()
@@ -124,6 +132,12 @@ class SMC:
         """
         await self.channel.send(repr(self))
 
+    def ongoing(self) -> bool:
+        """
+        Is the SMC active?
+        """
+        return self.state in ['CREATED', 'STARTED']
+
     async def _challenge_elapsed(self):
         """
         The join period is over, all members have joined
@@ -131,15 +145,3 @@ class SMC:
         await self.channel.send(f"~ SMC is _OVER_ ~")
         await self.channel.send(f"~ Entries: {self.entries} ~")
         self.state = 'COMPLETED'
-
-    def ongoing(self) -> bool:
-        """
-        Is the SMC active?
-        """
-        return self.state in ['CREATED', 'STARTED']
-
-    def __repr__(self):
-        msg = f"Topic: {self.topic}\nContestants: {self.members}\nDuration: {(self.duration / 60):.2f} minutes\n"
-        if self.timer is not None:
-            msg += f"Remaining: {(self.timer.remaining / 60):.2f} minutes\n"
-        return msg

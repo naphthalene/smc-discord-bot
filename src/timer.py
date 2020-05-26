@@ -14,6 +14,9 @@ class Timer:
 
     @property
     def remaining(self):
+        """
+        How much time is left on this timer.
+        """
         return self._timeout - (time.time() - self._start_time)
 
     def cancel(self):

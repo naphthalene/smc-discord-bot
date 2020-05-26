@@ -41,18 +41,20 @@ async def on_message(message):
 
     async def parse_cmd():
         """
-        Execute the appropriate
+        Parse the message for a command.
+        Ensure its not a message from the bot and that its preceded by a bang
         """
-        if not message.content.startswith('!'):
+        if not message.content.startswith('!') or message.author == client.user:
             return
 
         global current_smc
         check_smc()
-        parts = message.content.split()
-        command_name = parts[0].replace('!', '')
+        try:
+            command_name, duration, *topic = message.content.split()
+            command_name = command_name.replace('!', '').strip()
         if command_name == 'smc':
             if current_smc is not None and current_smc.ongoing():
-                await message.channel.send(f"~ error: Cannot start another SMC while another is ongoing ~")
+                await message.channel.send(f"~ error: Cannot start an SMC while another is ongoing ~")
                 return
             valid, validate_msg = SMC.validate_command(parts)
             if not valid:
@@ -72,10 +74,6 @@ async def on_message(message):
                 await message.channel.send('~ error: No currently running SMC ~')
             else:
                 await delegate_cmd(current_smc, command_name, message)
-
-    # Ignore messages from self
-    if message.author == client.user:
-        return
 
     await parse_cmd()
 
